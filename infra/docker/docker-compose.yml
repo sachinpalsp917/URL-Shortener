@@ -61,6 +61,7 @@ services:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       - api
+      - web-ui
     networks:
       - app-network
 
@@ -69,10 +70,12 @@ services:
       context: ../../apps/web-ui
       dockerfile: Dockerfile
     ports:
-      - "3000:3000" # Expose for direct debugging if needed
-    volumes:
-      - ../../apps/web-ui:/app
-      - /app/node_modules # Aviod overwriting container modules with host
+      - "3000:80" # Map host 3000 to container 80
+    # REMOVE the volumes mapping for node_modules/code (no hot reload in prod build)
+    # volumes: ... (DELETE THESE LINES)
+    environment:
+      # Vite needs env vars at BUILD time usually, but for this demo:
+      - VITE_API_URL=/api
     networks:
       - app-network
 

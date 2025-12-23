@@ -1,18 +1,36 @@
-FROM python:3.13-slim
-
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+# Step - 1: Builder
+FROM python:3.13-slim as builder
 
 WORKDIR /app
 
-# Copy dependency files
-COPY pyproject.toml uv.lock ./
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install dependencies
-RUN uv sync --frozen --no-dev
+# Install dependencies to /install
+COPY requirements.txt . 
+# (Make sure to generate requirements.txt from pyproject.toml first!)
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
-# IMPT: Add the virtual environment to the PATH
-# This ensures 'python' automatically points to the venv python
-ENV PATH="/app/.venv/bin:$PATH"
+# Step - 2: Runtime
+FROM python:3.13-slim
+
+WORKDIR /app
+
+# Runtime libraries
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /install /usr/local
+COPY . .
+
+# Security
+RUN useradd -m appuser
+USER appuser
+
+CMD ["python", "src/worker.py"]
 
 COPY . .
 
