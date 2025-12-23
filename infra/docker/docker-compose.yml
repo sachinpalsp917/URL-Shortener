@@ -64,6 +64,18 @@ services:
     networks:
       - app-network
 
+  web-ui:
+    build:
+      context: ../../apps/web-ui
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000" # Expose for direct debugging if needed
+    volumes:
+      - ../../apps/web-ui:/app
+      - /app/node_modules # Aviod overwriting container modules with host
+    networks:
+      - app-network
+
 volumes:
   postgres_data:
 
