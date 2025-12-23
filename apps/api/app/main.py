@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, Depends
+from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from pydantic import BaseModel
@@ -44,7 +45,7 @@ async def redirect_url(short_code: str, db: AsyncSession = Depends(get_db)):
     if cached_url:
         # Fire-and-forget analytics event (push to queue)
         await r.lpush("analytics_queue", short_code)
-        return {"action": "redirect", "url": cached_url, "source": "cache"}
+        return RedirectResponse(url=cached_url)
 
     # 2. DATABASE FALLBACK (Slow Path)
     result = await db.execute(select(URL).filter(URL.short_code == short_code))
@@ -59,4 +60,4 @@ async def redirect_url(short_code: str, db: AsyncSession = Depends(get_db)):
     # Push analytics event
     await r.lpush("analytics_queue", short_code)
     
-    return {"action": "redirect", "url":url_entry.original_url, "source": "db"}
+    return RedirectResponse(url=url_entry.original_url)
